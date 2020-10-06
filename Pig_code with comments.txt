@@ -1,0 +1,127 @@
+pig -x mapreduce
+
+RetailData = LOAD '/home/cloudera/Desktop/OnlineRetail.csv' USING PigStorage(',') as (InvoiceNo: int, StockCode: chararray, Description: chararray, Quantity: int, InvoiceDate: chararray, UnitPrice: float, Total_Price: float, CustomerID: int, Country: chararray);
+
+
+
+RetailData_all = Group RetailData All;
+Dump RetailData_all
+Overall_transactions = foreach RetailData_all Generate COUNT(RetailData.InvoiceNo);
+
+
+##Removing Data having negative Unit Price
+Clean_RetailData = FILTER RetailData BY UnitPrice > 0;
+Clean_RetailData_all = Group Clean_RetailData All;
+Overall_transactions = foreach Clean_RetailData_all Generate COUNT(Clean_RetailData.InvoiceNo);
+
+Q.1] Find out distinct number of countries in the dataset
+
+##Count of distinct countries of customers
+Country = FOREACH Clean_RetailData GENERATE Country;
+uniq_Country = DISTINCT Country;
+grouped_Country = GROUP uniq_Country ALL;
+uniq_Country_count = FOREACH grouped_Country GENERATE COUNT(uniq_Country);
+DUMP uniq_Country_count;
+
+(38)
+
+Q.2] Find out the distinct number of customers in the dataset
+
+##Count of distinct known customers
+CustomerID = FOREACH Clean_RetailData GENERATE CustomerID;
+uniq_CustomerID = DISTINCT CustomerID;
+grouped_CustomerID = GROUP uniq_CustomerID ALL;
+uniq_CustomerID_count = FOREACH grouped_CustomerID GENERATE COUNT(uniq_CustomerID);
+DUMP uniq_Country_count;
+
+(4371)
+
+Q.3] Find the top 10 customers who spent the most
+
+## Top 10 Customers spending
+Customer = group Clean_RetailData by CustomerID;
+Customer_spends = foreach Customer generate group as grp, SUM(Clean_RetailData.Total_Price) as Total_Price; 
+DUMP Customer_spends;
+order_by_Customer_spends = ORDER Customer_spends BY Total_Price DESC;
+Top_10_Customer_spends = LIMIT order_by_Customer_spends 10;
+Dump Top_10_Customer_spends;
+
+(14646,279489.02)
+(18102,256438.49)
+(17450,187482.17)
+(14911,132572.62)
+(12415,123725.45)
+(14156,113384.14)
+(17511,88125.38)
+(16684,65892.08)
+(13694,62653.1)
+(15311,59419.3400000001)
+
+Q.4] Find out the top 10 selling products
+
+##Top 10 selling Products
+Product = group Clean_RetailData by Description;
+Product_Quantity = foreach Product generate group as grp, SUM(Clean_RetailData.Quantity) as Quantity; 
+DUMP Product_Quantity;
+order_by_Product_Quantity = ORDER Product_Quantity BY Quantity DESC;
+Top_10_Product_Quantity = LIMIT order_by_Product_Quantity 10;
+Dump Top_10_Product_Quantity;
+
+
+(WORLD WAR 2 GLIDERS ASSTD DESIGNS,53847)
+(JUMBO BAG RED RETROSPOT,47359)
+(ASSORTED COLOUR BIRD ORNAMENT,36381)
+(POPCORN HOLDER,36334)
+(PACK OF 72 RETROSPOT CAKE CASES,36039)
+(WHITE HANGING HEART T-LIGHT HOLDER,35313)
+(RABBIT NIGHT LIGHT,30680)
+(MINI PAINT SET VINTAGE ,26437)
+(PACK OF 12 LONDON TISSUES ,26111)
+(PACK OF 60 PINK PAISLEY CAKE CASES,24753)
+
+
+Q.5] Find out the top 10 customers based on frequency
+
+#Top 10 Frequent Customer
+Customer_date = group Clean_RetailData by CustomerID, InvoiceDate;
+Frequency = foreach Customer_date generate group as grp, COUNT(Customer_date.Date) as freq; 
+DUMP Frequency;
+order_by_Frequency = ORDER Frequency BY freq DESC;
+Top_10_Frequency = LIMIT order_by_Frequency 10;
+Dump Top_10_Frequency;
+
+
+(14911,146)
+(12748,115)
+(17841,113)
+(15311,91)
+(14606,89)
+(13089,83)
+(12971,72)
+(16422,67)
+(14527,64)
+(13408,55)
+
+Q.6] Find out the top 10 countries based on revenue
+
+## Top 10 Countries spending
+Country = group Clean_RetailData by Country;
+Country_spends = foreach Country generate group as grp, SUM(Clean_RetailData.Total_Price) as Total_Price; 
+DUMP Country_spends;
+order_by_Country_spends = ORDER Country_spends BY Total_Price DESC;
+Top_10_Country_spends = LIMIT order_by_Country_spends 10;
+Dump Top_10_Country_spends;
+
+
+
+(United Kingdom,8187806.36400111)
+(Netherlands,284661.54)
+(EIRE,263276.819999998)
+(Germany,221698.209999999)
+(France,197403.9)
+(Australia,137077.27)
+(Switzerland,56385.35)
+(Spain,54774.58)
+(Belgium,40910.96)
+(Sweden,36595.91)
+
